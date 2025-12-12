@@ -50,7 +50,7 @@ impl GameState {
 
     fn create_match(&mut self, m: Match) -> MatchId {
         let id = m.id;
-        if m.state == "ONGOING" {
+        if m.state == "ACTIVE" {
             self.ongoing_matches.insert(id);
         }
         self.matches.insert(id, m);
@@ -61,7 +61,7 @@ impl GameState {
         let m = self.matches.get_mut(&match_id).expect("match not found");
         m.state = new_state.to_string();
 
-        if m.state == "ONGOING" {
+        if m.state == "ACTIVE" {
             self.ongoing_matches.insert(match_id);
         } else {
             self.ongoing_matches.remove(&match_id);
@@ -116,7 +116,8 @@ impl Plane {
     fn disconnect(&mut self) {
         self.online = false;
         self.is_joined = false;
-        self.joined_match_id = None;
+        // todo: consider removing plane from match
+        // self.joined_match_id = None;
         // todo: consider disqualifying or resetting disqualified flag
         println!("Plane {} disconnected.", self.name);
     }
@@ -132,9 +133,14 @@ impl Plane {
         if !m.planes.contains(&self.id) {
             m.planes.push(self.id);
         } else {
+            // let's not panic here, just log a warning
             println!("Plane {} tried to join a match twice!", self.name);
         }
         // todo: check if plane is already in another match
+        // temp easier check but less solid:
+        if self.is_joined {
+            panic!("Plane {} already joined to a match.", self.name);
+        }
 
         self.is_joined = true;
         self.joined_match_id = Some(match_id);
@@ -169,7 +175,7 @@ impl Plane {
 struct User {
     id: Uuid,
     username: String,
-    planes: Vec<Uuid>, // array of plane ids
+    planes: Vec<PlaneId>, // array of plane ids
 }
 
 impl User {
